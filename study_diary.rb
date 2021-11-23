@@ -1,5 +1,14 @@
+require 'io/console'
 require_relative "category"
 require_relative "studyItem"
+
+INSERT        = 1
+VIEW_ALL      = 2
+SEARCH        = 3
+VIEW_CATEGORY = 4
+DELETE_ITEM   = 5
+MARK_AS_DONE  = 6
+EXIT          = 7
 
 category_list = Array.new(2)
 category_list[0] = Category.new(name: "Ruby")
@@ -8,79 +17,122 @@ category_list[1] = Category.new(name: "JavaScript")
 study_list = []
 finished_items = []
 
+def clear
+    system 'clear'
+end
+  
+def wait_keypress
+    puts
+    puts 'Pressione qualquer tecla para continuar'
+    STDIN.getch
+end
+  
+def wait_and_clear
+    wait_keypress
+    clear
+end
+
+def print_collection(collection)
+    collection.each.with_index(1) do |element, index|
+        puts "##{index} - #{element.title} - #{element.category.name}"
+    end
+end
+
+def print_items(done, not_done)
+    puts "\nItens não concluídos: " if !not_done.empty?
+    print_collection(not_done)
+    return if done.empty?
+
+    puts "\nItens concluídos: "
+    print_collection(done)
+end
+
+def insert_item(category_list)
+    puts "\nDigite o título do seu item de estudo: "
+    title = gets.chomp
+    puts "\n[1] Ruby\n[2] Javascript"
+    c_index = gets.to_i
+    item = StudyItem.new(title: title, category: category_list[c_index-1])
+    puts "\nItem adicionado."    
+    return item
+end
+
+
+def search_word(collection, word)
+    collection.select {|element| element.title.include? word}
+end
+
+def search_item(done, not_done)
+    print "\nDigite uma palavra para procurar:"
+    word = gets.chomp
+    done_list = search_word(done, word)
+    not_done_list = search_word(not_done, word)
+    puts "\nForam encontrados #{done_list.size + not_done_list.size} resultados:"
+    print_items(done_list, not_done_list)
+end
+
+def search_category(done, not_done, category_list)
+    puts "\nDigite qual categoria: \n[1] Ruby\n[2] Javascript"
+    c_index = gets.to_i
+    done_list = done.select {|element| element.category == category_list[c_index-1]}
+    not_done_list = not_done.select {|element| element.category == category_list[c_index-1]}
+    print_items(done_list, not_done_list)
+end
+
+def delete_item(done, not_done)
+    puts "Digite qual item deseja apagar: "
+    print_collection(not_done + done)
+    i_index = gets.to_i
+    if i_index <= not_done.size
+        not_done.delete_at(i_index - 1)
+    elsif 
+        done.delete_at(i_index - not_done.size - 1)
+    end
+    puts "Item #{i_index} deletado."    
+end
+
+def mark_item_as_done(done, not_done)
+    puts "\n"
+        puts "Digite qual item deseja marcar como concluído:"
+        print_collection(not_done)
+        i_index = gets.to_i
+        done << not_done[i_index-1]
+        not_done.delete_at(i_index-1)
+        puts "Item #{i_index} marcado como concluído."
+end
+
+puts "Boas-vindas ao Diário de Estudos, seu companheiro para estudar!"
 while true
-    puts("===============================\n[1] Cadastrar um item para estudar
-[2] Ver todos os itens cadastrados
-[3] Buscar um item de estudo
-[4] Listar por categoria
-[5] Apagar um item
-[8] Sair
-Escolha um opção:")
-    usr_input = gets.chomp
+    puts <<~MENU
+    -----------------------------------------
+    [#{INSERT}] Cadastrar um item para estudar
+    [#{VIEW_ALL}] Ver todos os itens cadastrados
+    [#{SEARCH}] Buscar um item de estudo
+    [#{VIEW_CATEGORY}] Listar por categoria
+    [#{DELETE_ITEM}] Apagar um item
+    [#{MARK_AS_DONE}] Marcar um item como concluído
+    [#{EXIT}] Sair
+    -----------------------------------------
+    MENU
+    print "Escolha um opção: "
+    usr_input = gets.to_i
     
     case usr_input
-    when "1"
-        puts "\n"
-        puts "Digite o título do seu item de estudo: "
-        title = gets.chomp
-        puts "\n"
-        puts "[1] Ruby\n[2] Javascript"
-        c_index = gets.chomp.to_i
-        item = StudyItem.new(title: title, category: category_list[c_index-1])
-        study_list.append(item)
-        puts "\nItem adicionado."
-    when "2"
-        puts "\n"
-        puts "Itens não concluídos: "
-        study_list.each_with_index do |element, index|
-            pp "#" + (index+1).to_s + " - " + element.title + " - " + element.category.name
-        end
-        if finished_items.size > 0
-            puts "\n"
-            puts "Itens concluídos: "
-            finished_items.each_with_index do |element, index|
-                pp "#" + (index+1).to_s + " - " + element.title + " - " + element.category.name
-            end
-        end
-    when "3"
-        puts "\n"
-        puts "Digite uma palavra para procurar:"
-        target_word = gets.chomp
-        selected_items = study_list.select {|element| element.title.include? target_word}
-        puts "\n"
-        puts "Foram encontrados #{selected_items.size} resultados:"
-        selected_items.each_with_index do |element, index|
-            pp "#" + (index+1).to_s + " - " + element.title + " - " + element.category.name
-        end
-    when "4"
-        puts "\n"
-        puts "Digite qual categoria: \n[1] Ruby\n[2] Javascript"
-        c_index = gets.chomp.to_i
-        selected_items = study_list.select {|element| element.category == category_list[c_index-1]}
-        selected_items.each_with_index do |element, index|
-            pp "#" + (index+1).to_s + " - " + element.title + " - " + element.category.name
-        end
-    when "5"
-        puts "\n"
-        puts "Digite qual item deseja apagar:"
-        study_list.each_with_index do |element, index|
-            pp "#" + (index+1).to_s + " - " + element.title + " - " + element.category.name
-        end
-        i_index = gets.chomp.to_i
-        study_list.delete_at(i_index-1)
-        puts "Item #{i_index} deletado."
-    when "7"
-        puts "\n"
-        puts "Digite qual item deseja marcar como concluído:"
-        study_list.each_with_index do |element, index|
-            pp "#" + (index+1).to_s + " - " + element.title + " - " + element.category.name
-        end
-        i_index = gets.chomp.to_i
-        finished_items.append(study_list[i_index-1])
-        study_list.delete_at(i_index-1)
-        puts "Item #{i_index} marcado como concluído."
-    when "8"
+    when INSERT
+        study_list << insert_item(category_list)
+    when VIEW_ALL
+        print_items(finished_items, study_list)
+    when SEARCH
+        search_item(finished_items, study_list)
+    when VIEW_CATEGORY
+        search_category(finished_items, study_list, category_list)
+    when DELETE_ITEM
+        delete_item(finished_items, study_list)
+    when MARK_AS_DONE
+        mark_item_as_done(finished_items, study_list)
+    when EXIT
+        puts "Obrigado por usar o Diário de Estudos"
         exit
     end
-    puts "\n\n"
+    wait_and_clear
 end
